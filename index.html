@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="אימונים">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/180/dumbbell.png">
+
+    <title>מעקב אימונים</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --text-sub: #94a3b8;
+            --primary: #38bdf8;
+            --accent: #f97316;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --purple: #a855f7;
+            --border: rgba(255,255,255,0.08);
+            --nav-height: 70px;
+        }
+
+        [data-theme="light"] {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-sub: #64748b;
+            --primary: #0284c7;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text);
+            margin: 0; padding: 0; padding-top: env(safe-area-inset-top);
+            padding-bottom: calc(var(--nav-height) + 20px);
+            overflow-x: hidden;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg); position: sticky; top: 0; z-index: 10;
+            border-bottom: 1px solid var(--border);
+        }
+        .top-bar h1 { margin: 0; font-size: 1.4rem; font-weight: 900; }
+        .weight-pill {
+            background: var(--card); border: 1px solid var(--primary); padding: 4px 12px;
+            border-radius: 20px; display: flex; align-items: center; gap: 5px;
+        }
+        .weight-pill input {
+            width: 45px; background: none; border: none; color: var(--text); font-weight: bold;
+            text-align: center; font-size: 1rem;
+        }
+
+        /* Layout */
+        .container { padding: 15px; width: 100%; }
+        .tab-content { display: none; animation: fadeIn 0.2s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Exercise Cards */
+        .ex-card {
+            background: var(--card); border-radius: 16px; padding: 15px; margin-bottom: 12px;
+            border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .ex-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .ex-title { font-weight: 700; font-size: 1rem; color: var(--text); }
+        
+        .ex-actions { display: flex; gap: 10px; height: 48px; }
+        .ex-input {
+            flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+            color: var(--text); text-align: center; font-size: 1.1rem;
+        }
+        
+        .btn-update {
+            background: var(--primary); color: white; border: none; border-radius: 12px;
+            width: 60px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        .ex-tools { display: flex; gap: 12px; }
+        .tool-btn { color: var(--text-sub); font-size: 0.9rem; background: none; border: none; }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; width: 100%; height: var(--nav-height);
+            background: var(--card); border-top: 1px solid var(--border);
+            display: flex; justify-content: space-around; align-items: center;
+            z-index: 100; padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; color: var(--text-sub);
+            background: none; border: none; font-family: inherit;
+        }
+        .nav-item.active { color: var(--primary); }
+        .nav-item i { font-size: 1.3rem; margin-bottom: 4px; }
+        .nav-item span { font-size: 0.75rem; }
+
+        /* Floating Button */
+        .fab {
+            position: fixed; bottom: calc(var(--nav-height) + 15px); left: 15px;
+            width: 50px; height: 50px; background: var(--success); color: #000;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 90;
+        }
+
+        /* Modal */
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(8px);
+        }
+        .modal-card {
+            background: var(--card); width: 85%; padding: 25px; border-radius: 24px; text-align: center;
+        }
+        .modal-input { width: 100%; padding: 12px; margin: 10px 0; background: var(--bg); border: 1px solid var(--border); color: #fff; border-radius: 12px; text-align: center; font-size: 1rem; }
+
+        /* Stats */
+        .stat-box { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid var(--border); }
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h1>מעקב אימונים</h1>
+        <div class="weight-pill">
+            <input type="number" id="user-bw" value="63" onchange="logWeight()" inputmode="decimal">
+            <span style="font-size: 0.8rem">ק"ג</span>
+        </div>
+    </div>
+
+    <div id="tab-home" class="container tab-content active">
+        <h3 style="color:var(--primary); margin: 5px 0 15px 0;">כוח</h3>
+        <div id="gym-list"></div>
+        <h3 style="color:var(--accent); margin: 20px 0 15px 0;">ריצה</h3>
+        <div id="run-list"></div>
+    </div>
+
+    <div id="tab-stats" class="container tab-content">
+        <div id="goals-container"></div>
+        <div class="stat-box">
+            <h4 style="margin:0 0 10px 0">שיאים</h4>
+            <div id="records-list"></div>
+        </div>
+        <div class="stat-box">
+            <select id="chart-select" class="modal-input" onchange="renderChart()"></select>
+            <div style="height: 250px"><canvas id="mainChart"></canvas></div>
+        </div>
+    </div>
+
+    <div id="tab-settings" class="container tab-content">
+        <div class="stat-box" style="display:flex; justify-content:space-around; font-size:1.4rem">
+            <i class="fas fa-adjust" onclick="toggleTheme()"></i>
+            <i class="fas fa-calculator" onclick="open1RM()"></i>
+            <i class="fas fa-download" onclick="downloadBackup()"></i>
+            <i class="fas fa-upload" onclick="document.getElementById('import-file').click()"></i>
+            <input type="file" id="import-file" hidden onchange="importBackup(this)">
+        </div>
+        <div id="history-list"></div>
+    </div>
+
+    <div class="fab" onclick="openAddExModal()">+</div>
+
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('home', this)"><i class="fas fa-dumbbell"></i><span>אימון</span></button>
+        <button class="nav-item" onclick="switchTab('stats', this)"><i class="fas fa-chart-line"></i><span>מדדים</span></button>
+        <button class="nav-item" onclick="switchTab('settings', this)"><i class="fas fa-clock-rotate-left"></i><span>יומן</span></button>
+    </nav>
+
+    <div id="generic-modal" class="modal" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal-card" id="modal-content"></div>
+    </div>
+
+<script>
+    // --- Data Management ---
+    const DEFAULTS = [
+        {name: "1RM מתח", unit: "weight"}, {name: "מתח חזרות", unit: "reps"},
+        {name: "1RM מקבילים", unit: "weight"}, {name: "מקבילים חזרות", unit: "reps"}
+    ];
+    const RUNS = [1, 5, 10, 21];
+    
+    let exercises = [], historyData = [], goals = [], myChart = null;
+
+    window.onload = () => {
+        initApp();
+    };
+
+    function initApp() {
+        try {
+            const theme = localStorage.getItem('docs_theme') || 'default';
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            const bw = localStorage.getItem('docs_bw');
+            if(bw) document.getElementById('user-bw').value = bw;
+
+            exercises = JSON.parse(localStorage.getItem('docs_ex') || JSON.stringify(DEFAULTS));
+            historyData = JSON.parse(localStorage.getItem('docs_hist') || '[]');
+            goals = JSON.parse(localStorage.getItem('docs_goals') || '[]');
+            
+            renderAll();
+        } catch(e) {
+            console.error("Local Storage Error", e);
+            exercises = [...DEFAULTS];
+            renderAll();
+        }
+    }
+
+    function renderAll() {
+        renderHome();
+        renderStats();
+        renderHistoryList();
+    }
+
+    function switchTab(id, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-'+id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        btn.classList.add('active');
+        if(id==='stats') { setTimeout(renderChart, 100); }
+    }
+
+    function renderHome() {
+        document.getElementById('gym-list').innerHTML = exercises.map((ex, i) => `
+            <div class="ex-card">
+                <div class="ex-header">
+                    <span class="ex-title">${ex.name}</span>
+                    <div class="ex-tools">
+                        <i class="fas fa-rocket" style="color:var(--purple)" onclick="openGoalModal('${ex.name}', '${ex.unit}')"></i>
+                        <i class="fas fa-trash" style="color:var(--danger)" onclick="delEx(${i})"></i>
+                    </div>
+                </div>
+                <div class="ex-actions">
+                    <input type="${ex.unit==='time'?'text':'number'}" id="in-gym-${i}" class="ex-input" placeholder="${ex.unit==='weight'?'ק&quot;ג':(ex.unit==='reps'?'חזרות':'MM:SS')}" inputmode="${ex.unit==='time'?'text':'decimal'}">
+                    <button class="btn-update" onclick="addLog('gym', ${i})"><i class="fas fa-check"></i></button>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('run-list').innerHTML = RUNS.map((d, i) => `
+            <div class="ex-card">
+                <div class="ex-header"><span class="ex-title">${d} ק"מ</span></div>
+                <div class="ex-actions">
+                    <input type="text" id="in-run-${i}" class="ex-input" placeholder="MM:SS">
+                    <button class="btn-update" style="background:var(--accent)" onclick="addLog('run', ${i}, ${d})"><i class="fas fa-check"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function addLog(type, idx, dist) {
+        let name, unit, raw, val;
+        if(type==='gym') {
+            name = exercises[idx].name; unit = exercises[idx].unit;
+            raw = document.getElementById(`in-gym-${idx}`).value;
+        } else {
+            name = `ריצה ${dist} ק"מ`; unit = 'time';
+            raw = document.getElementById(`in-run-${idx}`).value;
+        }
+        if(!raw) return;
+        val = unit==='time' ? parseTime(raw) : parseFloat(raw);
+        if(!val) return;
+
+        historyData.push({ id: Date.now(), date: new Date().toLocaleDateString('he-IL'), timestamp: Date.now(), label: name, val, unit });
+        save(); renderAll();
+        if(type==='gym') document.getElementById(`in-gym-${idx}`).value = '';
+    }
+
+    function save() {
+        localStorage.setItem('docs_ex', JSON.stringify(exercises));
+        localStorage.setItem('docs_hist', JSON.stringify(historyData));
+        localStorage.setItem('docs_goals', JSON.stringify(goals));
+    }
+
+    // --- Helpers ---
+    function parseTime(s) {
+        const p = s.split(':').map(Number);
+        return p.length === 2 ? p[0]*60 + p[1] : (p.length === 1 ? p[0]*60 : 0);
+    }
+    function fmt(v, u) {
+        if(u==='time') { const m=Math.floor(v/60), s=v%60; return `${m}:${s<10?'0':''}${s}`; }
+        return v + (u==='weight'?' ק"ג':'');
+    }
+    function getBest(lbl, unit) {
+        const rel = historyData.filter(h=>h.label===lbl);
+        if(!rel.length) return 0;
+        return lbl.includes('ריצה') ? rel.reduce((a,b)=>a.val<b.val?a:b).val : rel.reduce((a,b)=>a.val>b.val?a:b).val;
+    }
+
+    // --- Modals ---
+    function openGoalModal(name, unit) {
+        const modal = document.getElementById('generic-modal');
+        document.getElementById('modal-content').innerHTML = `
+            <h3>הגדרת יעד</h3>
+            <p>${name}</p>
+            <input type="text" id="temp-goal" class="modal-input" placeholder="הכנס מספר או זמן" inputmode="decimal">
+            <button class="modal-btn" onclick="saveGoal('${name}', '${unit}')">שמור</button>
+        `;
+        modal.style.display = 'flex';
+    }
+    function saveGoal(name, unit) {
+        const val = document.getElementById('temp-goal').value;
+        const target = unit==='time' ? parseTime(val) : parseFloat(val);
+        goals = goals.filter(g=>g.label!==name);
+        goals.push({label:name, target, unit});
+        save(); document.getElementById('generic-modal').style.display='none'; renderStats();
+    }
+    function openAddExModal() {
+        const modal = document.getElementById('generic-modal');
+        document.getElementById('modal-content').innerHTML = `
+            <h3>תרגיל חדש</h3>
+            <input type="text" id="new-ex-name" class="modal-input" placeholder="שם התרגיל">
+            <select id="new-ex-unit" class="modal-input">
+                <option value="weight">משקל</option>
+                <option value="reps">חזרות</option>
+                <option value="time">זמן</option>
+            </select>
+            <button class="modal-btn" onclick="confirmAddEx()">הוסף</button>
+        `;
+        modal.style.display = 'flex';
+    }
+    function confirmAddEx() {
+        const name = document.getElementById('new-ex-name').value;
+        const unit = document.getElementById('new-ex-unit').value;
+        if(name) { exercises.push({name, unit}); save(); renderHome(); }
+        document.getElementById('generic-modal').style.display='none';
+    }
+
+    // --- Analytics ---
+    function renderStats() {
+        document.getElementById('goals-container').innerHTML = goals.map(g => {
+            const best = getBest(g.label, g.unit);
+            const pct = Math.min(100, Math.round((best/g.target)*100));
+            return `<div class="goal-widget" onclick="if(confirm('למחוק יעד?')){goals=goals.filter(x=>x.label!=='${g.label}');save();renderStats();}">
+                <div style="display:flex; justify-content:space-between; font-size:0.9rem"><span>${g.label}</span><span>${pct}%</span></div>
+                <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%"></div></div>
+            </div>`;
+        }).join('');
+
+        const allLabels = [...exercises.map(e=>e.name), ...RUNS.map(d=>`ריצה ${d} ק"מ`)];
+        document.getElementById('records-list').innerHTML = allLabels.map(lbl => {
+            const rel = historyData.filter(h=>h.label===lbl);
+            if(!rel.length) return '';
+            return `<div class="stat-row"><span>${lbl}</span><span style="color:var(--primary); font-weight:bold">${fmt(getBest(lbl, rel[0].unit), rel[0].unit)}</span></div>`;
+        }).join('');
+
+        const sel = document.getElementById('chart-select');
+        sel.innerHTML = [`<option value="משקל גוף" data-u="weight">משקל גוף</option>`, ...exercises.map(e=>`<option value="${e.name}" data-u="${e.unit}">${e.name}</option>`)].join('');
+    }
+
+    function renderChart() {
+        const sel = document.getElementById('chart-select');
+        const lbl = sel.value;
+        const u = sel.options[sel.selectedIndex].getAttribute('data-u');
+        const data = historyData.filter(h=>h.label===lbl).sort((a,b)=>a.timestamp-b.timestamp);
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        if(myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: data.map(d=>d.date), datasets: [{ data: data.map(d=>d.val), borderColor:'#38bdf8', tension:0.3, fill:true, backgroundColor:'rgba(56,189,248,0.1)' }] },
+            options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{grid:{color:'#333'},ticks:{callback:v=>fmt(v,u)}}, x:{display:false}} }
+        });
+    }
+
+    function renderHistoryList() {
+        const sorted = [...historyData].sort((a,b)=>b.timestamp-a.timestamp);
+        document.getElementById('history-list').innerHTML = sorted.map(h => `
+            <div class="stat-box" style="display:flex; justify-content:space-between; align-items:center">
+                <div><div style="font-weight:bold">${h.label}</div><div style="font-size:0.8rem; color:var(--text-sub)">${h.date}</div></div>
+                <div style="display:flex; gap:15px; align-items:center">
+                    <span style="color:var(--primary); font-weight:bold">${fmt(h.val, h.unit)}</span>
+                    <i class="fas fa-trash" style="color:var(--danger)" onclick="if(confirm('למחוק?')){historyData=historyData.filter(x=>x.id!==${h.id});save();renderAll();}"></i>
+                </div>
+            </div>`).join('');
+    }
+
+    function logWeight() {
+        const w = document.getElementById('user-bw').value;
+        localStorage.setItem('docs_bw', w);
+        historyData.push({id:Date.now(), date:new Date().toLocaleDateString('he-IL'), timestamp:Date.now(), label:'משקל גוף', val:parseFloat(w), unit:'weight'});
+        save();
+    }
+    function toggleTheme() {
+        const t = document.documentElement.getAttribute('data-theme')==='light'?'default':'light';
+        document.documentElement.setAttribute('data-theme', t);
+        localStorage.setItem('docs_theme', t);
+    }
+    function downloadBackup() {
+        const blob = new Blob([JSON.stringify({ex:exercises, hist:historyData, goals:goals})], {type:'application/json'});
+        const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='workout_backup.json'; a.click();
+    }
+    function importBackup(el) {
+        const r = new FileReader();
+        r.onload = e => {
+            const d = JSON.parse(e.target.result);
+            exercises=d.ex; historyData=d.hist; goals=d.goals;
+            save(); location.reload();
+        };
+        r.readAsText(el.files[0]);
+    }
+</script>
+</body>
+</html>
